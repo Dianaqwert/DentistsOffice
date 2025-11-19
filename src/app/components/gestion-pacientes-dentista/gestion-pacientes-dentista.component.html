@@ -1,0 +1,43 @@
+
+<!-- paciente-search.component.html -->
+<!--OPCIONES PARA BUSCAR -->
+<form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="formulario">
+  <h4>Buscar pacientes:</h4>
+  <input type="text" formControlName="nombres" placeholder="Ingresa los nombres" />
+  <input type="text" formControlName="apellidoPat" placeholder="Ingresa el apellido paterno" />
+  <input type="text" formControlName="apellidoMat" placeholder="Ingresa el apellido materno" />
+  <button type="submit">Buscar</button>
+
+  <button (click)="volverAlMenu()" class="btn btn-secondary mt-3">
+    ← Volver a Opciones
+  </button>
+</form>
+
+
+<div class="container mt-5">
+  <h3>Lista de Pacientes</h3>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Apellido Paterno</th>
+        <th>Apellido Materno</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (paciente of pacientes; track paciente.id_paciente) {
+        <tr>
+          <td>{{ paciente.id_paciente }}</td>
+          <td>{{ paciente.nombrespaciente }}</td>
+          <td>{{ paciente.apellidopat }}</td>
+          <td>{{ paciente.apellidomat }}</td>
+          <td>{{ paciente.telefono }}</td>
+          <td>{{ paciente.email }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
