@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { GestionPacientesDENTISTAComponent } from '../gestion-pacientes-dentista/gestion-pacientes-dentista.component';
 import { FormsModule } from '@angular/forms';
+import { PacientesService } from '../../services/pacientes.service';
 
 @Component({
   selector: 'app-menu-dentista',
@@ -16,14 +17,14 @@ export class MenuDentistaComponent {
   pacientes: any[] = []; // Propiedad para guardar la lista de pacientes
   mostrarListaPacientes: boolean = false; // Bandera para alternar la vista
 
-  constructor(private usuarioService: EmpleadosService,private router:Router) {
+  constructor(private usuarioService: EmpleadosService,private router:Router,private paciente:PacientesService) {
     this.usuario = this.usuarioService.getUsuario();
   }
 
   //pacientes---------------------------------------------------------------------------------
 
   cargarPacientes() {
-    this.usuarioService.getPacientes().subscribe({
+    this.paciente.getPacientes().subscribe({
       next: (data) => {
         this.pacientes = data;
         this.mostrarListaPacientes = true; 
