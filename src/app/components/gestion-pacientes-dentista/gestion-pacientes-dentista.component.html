@@ -1,43 +1,379 @@
+<div class="mb-3 cuad" >
+  <h1 class="txt">Gestión de pacientes</h1>
+</div>
 
-<!-- paciente-search.component.html -->
-<!--OPCIONES PARA BUSCAR -->
-<form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="formulario">
-  <h4>Buscar pacientes:</h4>
-  <input type="text" formControlName="nombres" placeholder="Ingresa los nombres" />
-  <input type="text" formControlName="apellidoPat" placeholder="Ingresa el apellido paterno" />
-  <input type="text" formControlName="apellidoMat" placeholder="Ingresa el apellido materno" />
-  <button type="submit">Buscar</button>
 
-  <button (click)="volverAlMenu()" class="btn btn-secondary mt-3">
-    ← Volver a Opciones
-  </button>
-</form>
+<!--INSERCIONES-->
+<!--
+HISTORIAL CLINICO-Al iniciar la consulta, el dentista entrevista al paciente. Si el paciente reporta una nueva alergia o enfermedad crónica, el dentista debe actualizar el registro existente.
+-- El dentista agrega "Penicilina" a las alergias del historial asociado al paciente
+UPDATE historial SET aleigas = 'Penicilina', enfermedades = 'Diabetes'
+WHERE Pacienteid = [ID_DEL_PACIENTE_EN_SILLA];
 
-<!--LISTA DE LOS PACIENTES-->
-<div class="container mt-5">
-  <h3>Lista de Pacientes</h3>
-  <table class="table table-striped">
+
+Gestión de Estado de la Cita (UPDATE)
+Acción: Indicar que el paciente ya está siendo atendido o que la cita ha finalizado. Esto es útil para métricas de tiempo y para que recepción sepa cuándo cobrar.
+Tabla: Cita.
+Campos clave: estado cita , descripcion.
+-- Marcar la cita como "Finalizada" (suponiendo que 2 = Finalizada) y agregar notas
+UPDATE Cita
+SET estado_cita = 2, descripcion = 'Limpieza profunda realizada sin complicaciones'
+WHERE id_cita = [ID_CITA_ACTUAL];
+
+
+Registro del Tratamiento Realizado (INSERT)
+Esta es la operación más crítica ("El Core"). El dentista registra qué procedimiento le hizo al paciente.
+Acción: Insertar un registro que vincule al paciente con un tipo de tratamiento específico (ej. "Extracción", "Endodoncia").
+Tabla: Tratamiento (o la tabla intermedia que une Cita/Paciente con Tipo Tratamiento ).
+Campos clave: id tipo tratamiento , costo , descripcion
+-- Registrar que se realizó una "Resina" al paciente actual
+INSERT INTO Tratamiento (id_tipo_tratamiento, descripcion, costo, Pacienteid)
+VALUES ([ID_TIPO_RESINA], 'Resina en molar superior derecho', 500.00, [ID_PACIENTE]);
+
+
+Derivaciones a Especialistas (INSERT)
+Si el dentista general detecta algo complejo (ej. cirugía maxilofacial), debe derivar al paciente.
+Acción: Crear una orden de referencia a otro doctor.
+Tabla: Derivacion.
+Campos clave: motivo , expectativa (interpretado del OCR expectadCermata ), Nombre Dentista (externo).
+INSERT INTO Derivacion (motivo, expectativa, Nombre_Dentista, Pacienteid)
+VALUES ('Requiere ortodoncia compleja', 'Valoración de brackets', 'Dr. Pérez', [ID_PACIENTE]);
+
+
+Consumo de Materiales (INSERT / UPDATE)
+Para calcular la rentabilidad, el dentista debe reportar qué gastó (ej. cuánta anestesia o qué kit usó).
+Acción: Registrar los materiales usados en esa sesión específica.
+Tabla: Material tratamiento y Material.
+Campos clave: id material , cantidad
+INSERT INTO Material_tratamiento (id_tratamiento, id_material, cantidad)
+VALUES ([ID_TRATAMIENTO_RECIENTE], [ID_GUANTES], 2);
+UPDATE Material SET stock = stock - 2 WHERE id_material = [ID_GUANTES];
+
+-->
+
+<div class="row">
+  <table>
     <thead>
       <tr>
-        <th>ID</th>
-        <th>Nombre</th>
-        <th>Apellido Paterno</th>
-        <th>Apellido Materno</th>
-        <th>Teléfono</th>
-        <th>Email</th>
+        <th>Nombre Completo</th>
+        <th>Fecha y Hora</th> 
+        <th>Motivo Cita</th>       
+        <th>Estado</th> <th>Acción</th>
       </tr>
     </thead>
+
     <tbody>
-      @for (paciente of pacientes; track paciente.id_paciente) {
-        <tr>
-          <td>{{ paciente.id_paciente }}</td>
-          <td>{{ paciente.nombrespaciente }}</td>
-          <td>{{ paciente.apellidopat }}</td>
-          <td>{{ paciente.apellidomat }}</td>
-          <td>{{ paciente.telefono }}</td>
-          <td>{{ paciente.email }}</td>
-        </tr>
-      }
-    </tbody>
+  @for (reporte of pacientes; track reporte.id_cita) {
+    <tr 
+      (click)="seleccionarPaciente(reporte)" 
+      style="cursor: pointer;" 
+      [class.fila-seleccionada]="reporte.id_paciente === pacienteSeleccionadoId">
+
+      <td>{{ reporte.paciente_nombre_completo }}</td>
+      <td>{{ reporte.fecha_hora | date: 'mediumDate' }}</td>
+      <td>{{ reporte.motivo_principal_cita }}</td>
+      
+      <td>
+        <span class="badge" 
+              [class.bg-success]="reporte.estado_cita === 'Atendida'"
+              [class.bg-warning]="reporte.estado_cita === 'Pendiente'"
+              [class.bg-info]="reporte.estado_cita === 'Agendada'">
+          {{ reporte.estado_cita }}
+        </span>
+      </td>
+
+      <td (click)="$event.stopPropagation()"> @if (reporte.estado_cita !== 'Atendida' && reporte.estado_cita !== 'Cancelada') {
+          <button class="btn btn-sm btn-success" (click)="abrirModalAtencion(reporte)">
+            <i class="bi bi-play-fill"></i> Atender
+          </button>
+        } @else {
+          <span class="text-muted small">-</span>
+        }
+      </td>
+
+    </tr>
+  }
+</tbody>
+
   </table>
+
 </div>
+<app-atencion-cita
+  [citaSeleccionada]="citaParaAtender"
+  (atencionGuardada)="recargarDatos()">
+</app-atencion-cita>
+
+<!-----------------------------------------------------------------------------------------------------------REPORTES-->
+<div class="row">
+
+  <div class="col-md-20">
+    <h2 class="p-3 mb-3">Reportes de pacientes</h2>
+  </div>
+
+  <div class="card p-3 shadow-sm mb-3">
+    <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="formulario">
+
+      <h4 class="mb-3">Buscar pacientes:</h4>
+
+      <!-- Fila con 3 columnas -->
+      <div class="row">
+
+        <div class="col-md-4">
+          <label for="inputNombres" class="form-label">Nombres:</label>
+          <input
+            type="text"
+            id="inputNombres"
+            formControlName="nombres"
+            placeholder="Ej: Juan"
+            class="form-control"
+          />
+          <!--validacion-->
+          @if(searchForm.get('nombres')?.invalid && searchForm.get('nombres')?.touched){
+            <div class="text-danger" >
+                Solo se permiten letras.
+            </div>
+          }
+        </div>
+
+        <div class="col-md-4">
+          <label for="inputPat" class="form-label">Apellido Paterno:</label>
+          <input
+            type="text"
+            id="inputPat"
+            formControlName="apellidoPat"
+            placeholder="Ej: Perez"
+            class="form-control"
+          />
+
+          <!--validacion-->
+          @if(searchForm.get('apellidoPat')?.invalid && searchForm.get('apellidoPat')?.touched){
+            <div class="text-danger" >
+                Solo se permiten letras.
+            </div>
+          }
+        </div>
+
+        <div class="col-md-4">
+          <label for="inputMat" class="form-label">Apellido Materno:</label>
+          <input
+            type="text"
+            id="inputMat"
+            formControlName="apellidoMat"
+            placeholder="Ej: Garcia"
+            class="form-control"
+          />
+
+          <!--validacion-->
+          @if(searchForm.get('apellidoMat')?.invalid && searchForm.get('apellidoMat')?.touched){
+            <div class="text-danger" >
+                Solo se permiten letras.
+            </div>
+          }
+        </div>
+
+      </div>
+      
+      <div class="row">
+        <!-- Botón que ocupa las 3 columnas -->
+        <div class="col-md-4">
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary w-100">Buscar</button>
+          </div>
+        </div>
+
+        <!--Boton de reset de busqueda-->
+        <div class="col-md-4">
+          <button (click)="resetBusqueda()" class="btn btn-warning w-100 warning">
+            Borrar busqueda
+          </button>
+        </div>
+
+        <!--boton de regreso-->
+        <div class="col-md-4">
+          <button (click)="volverAlMenu()" class="btn btn-secondary w-100 volver">
+            Volver a opciones
+          </button>
+
+        </div>
+
+
+      </div>
+      
+
+    </form>
+  </div>
+
+  <!-- Columna derecha: tabla -->
+  <div class="col-md-20">
+    <div class="bg-light p-3 border rounded">
+
+      <h4 class="mb-3">Reporte Clínico Consolidado</h4>
+
+      <div class="table-responsive">
+        <table class=" table-striped table-hover table-sm table-bordered">
+
+          <thead>
+            <tr>
+              <th>Nombre Completo</th>
+              <th>Fecha y Hora</th>
+              <th>Motivo Cita</th>
+              <th>Dentistas</th>
+              <th>Tratamiento y Cantidad</th>
+              <th>Avance Historial</th>
+              <th>Derivaciones</th>
+              <th>Estudios</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            @for (reporte of pacientes; track reporte.id_cita) {
+              <tr  
+                (click)="seleccionarPaciente(reporte)" 
+                style="cursor: pointer;" 
+                class="estilo_s hover-aqua"
+                [class.fila-seleccionada]="reporte.id_paciente === pacienteSeleccionadoId"
+              >
+
+
+                <td>{{ reporte.paciente_nombre_completo }}</td>
+                <td>{{ reporte.fecha_hora | date: 'mediumDate' }}</td>
+                <td>{{ reporte.motivo_principal_cita }}</td>
+                <td>{{ reporte.dentistas_involucrados }}</td>
+
+                <td>
+                  @for (item of (reporte.tratamientos_y_cantidad || '').split('|'); track $index) {
+                    <div class="separador-reporte">
+                      {{ item.trim() }}
+                    </div>
+                  }
+                </td>
+
+                <td>{{ reporte.historial_avance }}</td>
+
+                <td>
+                  @for (item of (reporte.derivaciones_registradas || '').split('|'); track $index) {
+                    <div class="separador-reporte">
+                      {{ item.trim() }}
+                    </div>
+                  }
+                </td>
+
+                <td>
+                  @for (item of (reporte.estudios_realizados_o_solicitados || '').split('|'); track $index) {
+                    <div class="separador-reporte">
+                      {{ item.trim() }}
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+
+            @if (pacientes.length === 0) {
+              <tr>
+                <td colspan="10" class="text-center text-muted">
+                  No se encontraron citas o pacientes con esos criterios.
+                </td>
+              </tr>
+            }
+
+          </tbody>
+
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+
+<!-- PESTAÑAS -->
+<div div class="row">
+  <h3>Reportes de seguimiento</h3>
+
+  <ul class="nav nav-tabs mt-4" id="myTab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tabla1-tab" data-bs-toggle="tab" data-bs-target="#tabla1" type="button" role="tab">
+        Tratamientos
+      </button>
+    </li>
+
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tabla2-tab" data-bs-toggle="tab" data-bs-target="#tabla2" type="button" role="tab">
+        Derivaciones
+      </button>
+    </li>
+
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tabla3-tab" data-bs-toggle="tab" data-bs-target="#tabla3" type="button" role="tab">
+        Historial
+      </button>
+    </li>
+
+  </ul>
+
+  <!--PESTAÑAS-->
+  <!-- CONTENIDO DE CADA PESTAÑA -->
+  <div class="tab-content p-3 border border-top-0 rounded-bottom" id="myTabContent">
+    <!-- TAB 1-tratamientos -->
+    <div class="tab-pane fade show active" id="tabla1" role="tabpanel">
+      <app-tratamiento-pacientes 
+      [idPaciente]="pacienteSeleccionadoId">
+      </app-tratamiento-pacientes>
+    </div>
+
+    <!-- TAB 2 - DERIVACIONES-->
+    <div class="tab-pane fade" id="tabla2" role="tabpanel">
+      <app-derivaciones-ext-paciente 
+        [idPaciente]="pacienteSeleccionadoId">
+      </app-derivaciones-ext-paciente>
+    </div>
+
+    <!-- TAB 3 -->
+    <div class="tab-pane fade" id="tabla3" role="tabpanel">
+      <app-historial-pacientes
+      [idPaciente]="pacienteSeleccionadoId">
+      </app-historial-pacientes>
+    </div>
+
+  </div>
+
+</div>
+
+<!--INSERCIONES Y EDICIONES-->
+<!--HISTORIAL CLINICO-
+div class="container">
+  
+  <div class="row mb-4">
+    <h3>Buscar Paciente</h3>
+    <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="d-flex gap-2">
+      <input formControlName="nombres" placeholder="Nombre" class="form-control">
+      <input formControlName="apellidoPat" placeholder="Apellido Pat" class="form-control">
+      <input formControlName="apellidoMat" placeholder="Apellido Mat" class="form-control">
+      <button type="submit" class="btn btn-primary">Buscar</button>
+    </form>
+  </div>
+
+  <div class="row mb-4" *ngIf="!pacienteSeleccionado">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Nombre Completo</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of pacientes">
+          <td>{{ p.paciente_nombre_completo }}</td>
+          <td>
+            <button class="btn btn-success btn-sm" (click)="seleccionarPaciente(p)">
+              Atender / Ver Historial
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div-->

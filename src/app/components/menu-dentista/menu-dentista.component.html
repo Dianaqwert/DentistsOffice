@@ -1,10 +1,13 @@
-<div class="divPrincipal">
-  <h2>Bienvenido, {{ usuario?.nombres }}</h2>
-</div>
+
 
 
 <!--GALERIA DE OPCIONES-->
 @if(!mostrarListaPacientes){
+
+  <div class="divPrincipal">
+    <h2 class="titulo">Bienvenido, {{ usuario?.nombres }}</h2>
+  </div>
+
   <div class="album py-5 bg-body-tertiary">
     <div class="container">
       <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
@@ -19,7 +22,7 @@
             <div class="card-body">
               <h2>Gestion de pacientes</h2>
               <p class="card-text">
-                Dar de alta o baja a clientes , editar sus registros o tratamiento.
+                Dar de alta o baja a clientes , editar sus registros o tratamiento y reportes.
               </p>
               <div class="d-flex justify-content-between align-items-center">
                 <div class="btn-group">
@@ -45,12 +48,11 @@
             <div class="card-body">
               <h2>Agenda y citas</h2>
               <p class="card-text">
-                Dar de alta o baja a clientes , editar sus registros o tratamiento.
+                Citas designadas y proximas.
               </p>
               <div class="d-flex justify-content-between align-items-center">
                 <div class="btn-group">
                   <button type="button" class="btn btn-sm btn-outline-secondary">Ver</button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Editar</button>
                 </div>
                 <small class="text-body-secondary">9 mins</small>
               </div>
@@ -69,7 +71,7 @@
             <div class="card-body">
               <h2>Gestión de Materiales</h2>
               <p class="card-text">
-                Dar de alta o baja a clientes , editar sus registros o tratamiento.
+                Inventario
               </p>
               <div class="d-flex justify-content-between align-items-center">
                 <div class="btn-group">
@@ -83,7 +85,7 @@
         </div>
 
         <!---->
-        <div class="col">
+        <!--div class="col">
           <div class="card shadow-sm">
             <img src="historial.png" 
             class="card-img-top bd-placeholder-img " 
@@ -104,9 +106,9 @@
               </div>
             </div>
           </div>
-        </div>
+        </div
 
-        <!---->
+        
         <div class="col">
           <div class="card shadow-sm">
             <img src="tratamitento.png" 
@@ -129,7 +131,7 @@
             </div>
           </div>
         </div>
-        <!---->
+        -->
       
 
         <!---->
@@ -143,7 +145,7 @@
             <div class="card-body">
               <h2>Administración</h2>
               <p class="card-text">
-                Dar de alta o baja a clientes , editar sus registros o tratamiento.
+                Dar de alta o baja a trabajadores y supervisión.
               </p>
               <div class="d-flex justify-content-between align-items-center">
                 <div class="btn-group">

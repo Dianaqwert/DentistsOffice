@@ -11,3 +11,9 @@ button{
 button:hover{
     background-color:#c0e7e6;
 }
+
+div{
+    font-family: "Raleway", sans-serif;
+    font-weight: 200;
+
+}
