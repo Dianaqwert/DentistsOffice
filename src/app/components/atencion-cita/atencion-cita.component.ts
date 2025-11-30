@@ -1,9 +1,11 @@
-import { Component ,Input,Output,EventEmitter, OnInit} from '@angular/core';
+import { Component ,Input,Output,EventEmitter, OnInit, SimpleChanges} from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PacientesService } from '../../services/pacientes.service';
 import { CommonModule } from '@angular/common';
 
 declare var bootstrap: any;
+const SOLO_LETRAS = '^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\\s]+$';
+
 /*
 CommonModule, 
     ReactiveFormsModule, 
@@ -22,11 +24,9 @@ export class AtencionCitaComponent implements OnInit {
   @Output() atencionGuardada = new EventEmitter<boolean>(); // Avisar al padre para recargar la tabla
 
   atencionForm: FormGroup;
-  
   // Catálogos para los Selects
   catalogoTratamientos: any[] = [];
   catalogoMateriales: any[] = [];
-  
   // Variable para mostrar el total en tiempo real
   totalDeudaEstimada: number = 0;
 
@@ -34,6 +34,7 @@ export class AtencionCitaComponent implements OnInit {
     private fb: FormBuilder,
     private pacientesService: PacientesService
   ) {
+
     this.atencionForm = this.fb.group({
       // DATOS CLÍNICOS
       alergias: [''],
@@ -43,25 +44,96 @@ export class AtencionCitaComponent implements OnInit {
       // ARRAYS DINÁMICOS
       tratamientos: this.fb.array([]),
       derivaciones: this.fb.array([]),
-      estudios: this.fb.array([])
+      estudios: this.fb.array([]),
+
     });
   }
 
   ngOnInit(): void {
     this.cargarCatalogos();
-    
-    // Si la cita ya trae datos previos del paciente, podríamos pre-llenar alergias aquí
-    // if (this.citaSeleccionada) { ... }
+  }
+
+  //cambios -> se detectan cambios en la cita seleccionada para cargas datos precios SI EXISTEN
+  ngOnChanges(changes:SimpleChanges):void{
+    if (changes['citaSeleccionada'] && this.citaSeleccionada) {
+        
+        // 1. Limpiamos el formulario primero
+        this.limpiarFormulario();
+
+        // 2. Decidimos qué cargar
+        if (this.citaSeleccionada.estado_cita === 'Atendida') {
+            // MODO EDICIÓN: Cargar lo que se guardó en ESTA cita
+            this.cargarDatosEdicion(this.citaSeleccionada.id_cita);
+        } else {
+            // MODO NUEVA ATENCIÓN: Pre-cargar antecedentes del paciente
+            this.cargarAntecedentesPrevios(this.citaSeleccionada.id_paciente);
+        }
+    }
+  }
+
+  limpiarFormulario() {
+      this.atencionForm.reset();
+      this.tratamientosArray.clear();
+      this.derivacionesArray.clear();
+      this.estudiosArray.clear();
+      this.totalDeudaEstimada = 0;
+  }
+
+  cargarDatosEdicion(idCita: number) {
+      this.pacientesService.getDetalleCita(idCita).subscribe({
+          next: (data) => {
+              // A. Rellenar Textos (Historial)
+              if (data.historial) {
+                  this.atencionForm.patchValue({
+                      alergias: data.historial.alergias,
+                      enfermedades: data.historial.enfermedades,
+                      avanceTratamiento: data.historial.avancetratamiento // Ojo con mayúsculas/minúsculas de tu DB
+                  });
+              }
+
+              // B. Rellenar Tabla de Tratamientos (FormArray)
+              if (data.tratamientos && data.tratamientos.length > 0) {
+                  data.tratamientos.forEach((trat: any) => {
+                      this.agregarTratamientoExistente(trat);
+                  });
+              }
+              
+              // Recalcular total visual
+              this.calcularTotalGeneral();
+          },
+          error: (err) => console.error('Error cargando datos de edición', err)
+      });
+  }
+
+  // Método auxiliar para empujar datos al array
+  agregarTratamientoExistente(datos: any) {
+      const tratamientoGroup = this.fb.group({
+          id_tipo_tratamiento: [datos.id_tipo_tratamiento, Validators.required],
+          id_tipo_material: [datos.id_tipo_material], 
+          cantidad: [datos.cantidad, [Validators.required, Validators.min(1)]]
+      });
+      this.tratamientosArray.push(tratamientoGroup);
   }
 
   // --- CARGA DE DATOS ---
-  cargarCatalogos() {
+  /*cargarCatalogos() {
     // Necesitas estos métodos en tu servicio (ver paso 2)
     this.pacientesService.getListaTratamientos().subscribe(data => this.catalogoTratamientos = data);
     this.pacientesService.getListaMateriales().subscribe(data => this.catalogoMateriales = data);
+  }*/
+  cargarCatalogos() {
+    this.pacientesService.getListaTratamientos().subscribe({
+        next: (data) => this.catalogoTratamientos = data,
+        error: (err) => console.error('Error cargando tratamientos', err)
+    });
+
+    this.pacientesService.getListaMateriales().subscribe({
+        next: (data) => this.catalogoMateriales = data,
+        error: (err) => console.error('Error cargando materiales', err)
+    });
   }
 
-  // --- GETTERS PARA EL HTML (FormArray) ---
+  // --- GETTERS PARA EL HTML---
   get tratamientosArray() { return this.atencionForm.get('tratamientos') as FormArray; }
   get derivacionesArray() { return this.atencionForm.get('derivaciones') as FormArray; }
   get estudiosArray() { return this.atencionForm.get('estudios') as FormArray; }
@@ -88,7 +160,9 @@ export class AtencionCitaComponent implements OnInit {
 
   obtenerCostoEstimado(index: number): number {
     const row = this.tratamientosArray.at(index).value;
-    if (!row.id_tipo_tratamiento) return 0;
+    if (!row.id_tipo_tratamiento){
+      return 0;
+    }
 
     // Buscar el precio en el catálogo
     const tratamiento = this.catalogoTratamientos.find(t => t.id_tipo_tratamiento == row.id_tipo_tratamiento);
@@ -107,12 +181,15 @@ export class AtencionCitaComponent implements OnInit {
   // --- LÓGICA DE DERIVACIONES Y ESTUDIOS ---
   agregarDerivacion() {
     this.derivacionesArray.push(this.fb.group({
-      nombreDentista: ['', Validators.required],
-      especialidadDentista: ['', Validators.required],
+      nombreDentista: ['', [Validators.required,Validators.pattern(SOLO_LETRAS)]],
+      especialidadDentista: ['', [Validators.required,Validators.pattern(SOLO_LETRAS)]],
       motivo: ['', Validators.required]
     }));
   }
-  eliminarDerivacion(index: number) { this.derivacionesArray.removeAt(index); }
+
+  eliminarDerivacion(index: number) { 
+    this.derivacionesArray.removeAt(index); 
+  }
 
   agregarEstudio() {
     this.estudiosArray.push(this.fb.group({
@@ -120,7 +197,10 @@ export class AtencionCitaComponent implements OnInit {
       descripcion: ['']
     }));
   }
-  eliminarEstudio(index: number) { this.estudiosArray.removeAt(index); }
+
+  eliminarEstudio(index: number) { 
+    this.estudiosArray.removeAt(index); 
+  }
 
   // --- GUARDADO FINAL ---
   guardarAtencion() {
@@ -164,5 +244,20 @@ export class AtencionCitaComponent implements OnInit {
     this.derivacionesArray.clear();
     this.estudiosArray.clear();
     this.totalDeudaEstimada = 0;
+  }
+
+  cargarAntecedentesPrevios(idPaciente: number) {
+      this.pacientesService.getUltimoHistorial(idPaciente).subscribe({
+          next: (data) => {
+              if (data) {
+                  // Solo parcheamos alergias y enfermedades (no el avance, porque ese es nuevo)
+                  this.atencionForm.patchValue({
+                      alergias: data.alergias || '',
+                      enfermedades: data.enfermedades || ''
+                  });
+              }
+          },
+          error: (err) => console.warn('El paciente no tiene historial previo o hubo error', err)
+      });
   }
 }

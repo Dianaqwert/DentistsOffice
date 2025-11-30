@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component,Input,Output,EventEmitter } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, Validators } from '@angular/forms';
 import { ReactiveFormsModule } from '@angular/forms';
 import { PacientesService } from '../../services/pacientes.service';
 import { DerivacionesExtPacienteComponent } from "../derivaciones-ext-paciente/derivaciones-ext-paciente.component";
 import { HistorialPacientesComponent } from "../historial-pacientes/historial-pacientes.component";
 import { TratamientoPacientesComponent } from "../tratamiento-pacientes/tratamiento-pacientes.component";
 import { AtencionCitaComponent } from '../atencion-cita/atencion-cita.component';
+import { EmpleadosService } from '../../services/empleados.service';
 
 declare var bootstrap: any;
 
@@ -14,7 +15,7 @@ declare var bootstrap: any;
   standalone:true,
   selector: 'app-gestion-pacientes-dentista',
   imports: [CommonModule, ReactiveFormsModule,DerivacionesExtPacienteComponent, HistorialPacientesComponent, 
-    TratamientoPacientesComponent,AtencionCitaComponent],
+    TratamientoPacientesComponent,AtencionCitaComponent,FormsModule],
   templateUrl: './gestion-pacientes-dentista.component.html',
   styleUrl: './gestion-pacientes-dentista.component.css'
 })
@@ -29,14 +30,26 @@ export class GestionPacientesDENTISTAComponent {
   // Emite un evento al padre cuando se hace clic en "Volver"
   @Output() volverMenu = new EventEmitter<void>();
 
+  //empleado
+  usuarioLogueado: any = null;
+  nombreDentista:string='';
   vistaActiva: 'lista' | 'detalle' = 'lista'; 
   pacienteSeleccionado: any = null;
   pacienteSeleccionadoId: number | null = null;
   searchForm:FormGroup;
   //para controldar la cita
   citaParaAtender: any = null;
+  agenda:any[]=[]
+  //filtros de cita por fecha y cita
+  fechaFiltro: string = new Date().toISOString().split('T')[0]; // Fecha de hoy por defecto
+  estadoFiltro: string = 'Todos'; // Por defecto todos
+  citasFiltradas: any[] = []; // Aquí guardaremos el resultado de esta búsqueda específica
+  // Lista de estados para el Select
+  estadosPosibles: string[] = ['Todos', 'Agendada', 'Confirmada', 'Atendida', 'Cancelada', 'Pendiente', 'No asistio'];
 
-  constructor(private fb: FormBuilder,private usuarioService:PacientesService) {
+  constructor(private fb: FormBuilder,private usuarioService:PacientesService,
+    private empleadoService:EmpleadosService
+  ) {
     //campos del formulario
     this.searchForm = this.fb.group({
       nombres: [''],
@@ -52,13 +65,27 @@ export class GestionPacientesDENTISTAComponent {
       apellidoMat: ['', [Validators.pattern('^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$')]],
     });
 
+    if (this.usuarioLogueado && this.usuarioLogueado.tipoempleado === 'Dentista') {
+        this.usuarioLogueado = this.nombreDentista;
+    }
+
+
 
   }
 
 
   ngOnInit(): void {
+    //obtener usuario logeado
+    this.usuarioLogueado=this.empleadoService.getUsuario();
+    console.log("Usuario Logueado:", this.usuarioLogueado); // Debug
+    //nombre del dentista
+    if (this.usuarioLogueado && this.usuarioLogueado.tipoempleado === 'Dentista') {
+      this.nombreDentista = this.usuarioLogueado.nombre; // 👈 asignas el nombre
+    }
+
     // Carga todos los pacientes al iniciar, pasando valores vacíos
     this.buscarPacientes('', '', '');
+
   }
 
   onSearch() {
@@ -69,7 +96,8 @@ export class GestionPacientesDENTISTAComponent {
     }
 
     //objeto que obtiene los valores
-    let { nombres, 
+    let { 
+      nombres, 
       apellidoPat, 
       apellidoMat,
     } = this.searchForm.value;
@@ -157,7 +185,6 @@ export class GestionPacientesDENTISTAComponent {
   tr_verificar_stock_detalle : Evita que el dentista registre 10 unidades de anestesia si solo quedan 2. Esto te ahorra validaciones complejas en Angular.
   tr_reducir_stock:Automatiza el inventario. En cuanto Angular guarde el consumo, el stock baja solo.
   tr_historial_solo_atendida:Cuando seleccionas al paciente en tu buscador, usa esta función para llenar los campos de "Alergias" y "Enfermedades" previas en el formulario.
-  
   fn_obtener_historial_completo_paciente: Sirve para ver datos, pero no para guardar. Úsala cuando cargues al paciente.*/
 
   //leer el modal
@@ -186,7 +213,43 @@ export class GestionPacientesDENTISTAComponent {
     const { nombres, apellidoPat, apellidoMat } = this.searchForm.value;
     this.buscarPacientes(nombres, apellidoPat, apellidoMat);
   }
+
+  //mo se ha utilizado
+  cargarAgenda(){
+    this.usuarioService.getCitasAgendadas().subscribe({
+      next: (data) => {
+        this.agenda = data;
+      },
+      error: (err) => console.error('Error cargando agenda', err)
+    });
+  }
+
+  buscarCitasPorFecha() {
+    //verificamos si es dentista 
+    let idDentistaParaFiltro: number | undefined = undefined;
+
+    if (this.usuarioLogueado && this.usuarioLogueado.tipoempleado === 'Dentista') {
+        idDentistaParaFiltro = this.usuarioLogueado.id_usuario;
+    }
+
+    console.log("Filtrando agenda para dentista ID:", idDentistaParaFiltro); // Debug
+
+    // Llamamos al servicio con el ID del dentista
+    this.usuarioService.getCitasPorFecha(this.fechaFiltro, this.estadoFiltro, idDentistaParaFiltro)
+      .subscribe({
+        next: (data) => {
+          this.citasFiltradas = data;
+        },
+        error: (err) => console.error('Error cargando agenda', err)
+      });
+  }
   
+  //Para limpiar este filtro
+  limpiarFiltroFecha() {
+      this.citasFiltradas = [];
+      this.fechaFiltro = '';
+      this.estadoFiltro = 'Todos';
+  }
 }
 
 

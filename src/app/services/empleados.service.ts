@@ -11,18 +11,29 @@ export class EmpleadosService {
   usuarioLogeado:any=null;
   private API_URL="http://localhost:3000/api/empleados";
   API_PACIENTES_URL="http://localhost:3000/api/pacientes"
-  constructor(private http:HttpClient) { }
 
   //observable
-  getEmpleados():Observable<any>{
-    return this.http.get(this.API_URL)
+  constructor(private http: HttpClient) { 
+    // AL INICIAR EL SERVICIO, BUSCAR EN LOCALSTORAGE
+    const usuarioGuardado = localStorage.getItem('usuario_dental');
+    if (usuarioGuardado) {
+      this.usuarioLogeado = JSON.parse(usuarioGuardado);
+    }
   }
 
-  setUsuario(usuario:any){
-    this.usuarioLogeado=usuario;
+  setUsuario(usuario: any) {
+    this.usuarioLogeado = usuario;
+    // GUARDAR EN EL NAVEGADOR
+    localStorage.setItem('usuario_dental', JSON.stringify(usuario));
   }
-  getUsuario(){
+
+  getUsuario() {
     return this.usuarioLogeado;
+  }
+  
+  logout() {
+    this.usuarioLogeado = null;
+    localStorage.removeItem('usuario_dental');
   }
 
   //funcion para buscar empleados por campo
@@ -36,6 +47,15 @@ export class EmpleadosService {
     return this.http.post<any>(`${this.API_URL}/buscar`,body);
   }
 
+  getListarEmpleados(){
+    return this.http.get<any>(`${this.API_URL}/listar`);
+  }
+
+
+  getEmpleados(): Observable<any> {
+   // API_URL es "http://localhost:3000/api/empleados"
+   return this.http.get(this.API_URL)
+}
 
 
 

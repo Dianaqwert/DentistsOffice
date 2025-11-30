@@ -48,19 +48,3 @@
   {{msjError}}
 }
 </div>
-
-
-
-<h2>Lista de empleados</h2>
-
-@if (empleados.length > 0) {
-  <ul>
-    @for (empleado of empleados; track empleado.id) {
-      <li>
-        {{ empleado.nombre }} {{ empleado.apellidopat }}
-      </li>
-    }
-  </ul>
-} @else {
-  <p>No hay empleados disponibles.</p>
-}

@@ -1,7 +1,7 @@
-<div class="mb-3 cuad" >
+<div class="mb-3 cuad">
   <h1 class="txt">Gestión de pacientes</h1>
+  <h4 class="txt-2">Dr.{{ usuarioLogueado.nombres}}</h4>
 </div>
-
 
 <!--INSERCIONES-->
 <!--
@@ -50,58 +50,113 @@ VALUES ([ID_TRATAMIENTO_RECIENTE], [ID_GUANTES], 2);
 UPDATE Material SET stock = stock - 2 WHERE id_material = [ID_GUANTES];
 
 -->
-
+<!-----------------------------------------------------LISTADO DE CITAS ------------------------------------------------------->
+<!--PARA TODAS LAS CITAS-->
 <div class="row">
-  <table>
-    <thead>
-      <tr>
-        <th>Nombre Completo</th>
-        <th>Fecha y Hora</th> 
-        <th>Motivo Cita</th>       
-        <th>Estado</th> <th>Acción</th>
-      </tr>
-    </thead>
 
-    <tbody>
-  @for (reporte of pacientes; track reporte.id_cita) {
-    <tr 
-      (click)="seleccionarPaciente(reporte)" 
-      style="cursor: pointer;" 
-      [class.fila-seleccionada]="reporte.id_paciente === pacienteSeleccionadoId">
-
-      <td>{{ reporte.paciente_nombre_completo }}</td>
-      <td>{{ reporte.fecha_hora | date: 'mediumDate' }}</td>
-      <td>{{ reporte.motivo_principal_cita }}</td>
-      
-      <td>
-        <span class="badge" 
-              [class.bg-success]="reporte.estado_cita === 'Atendida'"
-              [class.bg-warning]="reporte.estado_cita === 'Pendiente'"
-              [class.bg-info]="reporte.estado_cita === 'Agendada'">
-          {{ reporte.estado_cita }}
-        </span>
-      </td>
-
-      <td (click)="$event.stopPropagation()"> @if (reporte.estado_cita !== 'Atendida' && reporte.estado_cita !== 'Cancelada') {
-          <button class="btn btn-sm btn-success" (click)="abrirModalAtencion(reporte)">
-            <i class="bi bi-play-fill"></i> Atender
-          </button>
-        } @else {
-          <span class="text-muted small">-</span>
-        }
-      </td>
-
-    </tr>
-  }
-</tbody>
-
-  </table>
+  <div class="col-md-20">
+    <h2>Agenda de citas</h2>
+  </div>
 
 </div>
+<div class="card border-secondary shadow-sm contendor">
+  <div class="card-header bg text-white">
+    <h5 class="mb-0">
+      <i class="bi bi-calendar3"></i>Filtro de citas</h5>
+  </div>
+  
+  <div class="card-body claseBody">
+    <div class="row g-3 align-items-end mb-3">
+      
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Fecha:</label>
+        <input type="date" class="form-control" [(ngModel)]="fechaFiltro">
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Estado:</label>
+        <select class="form-select" [(ngModel)]="estadoFiltro">
+          @for (estado of estadosPosibles; track estado) {
+            <option [value]="estado">{{ estado }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100" (click)="buscarCitasPorFecha()">
+          <i class="bi bi-search"></i> Filtrar
+        </button>
+      </div>
+      
+      <div class="col-md-2">
+          <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltroFecha()">
+            Limpiar
+          </button>
+      </div>
+    </div>
+
+    @if (citasFiltradas.length > 0) {
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Hora</th>
+              <th>Paciente</th>
+              <th>Motivo</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (cita of citasFiltradas; track cita.id_cita) {
+              <tr>
+                <td class="fw-bold">{{ cita.hora}}</td>
+                
+                <td>{{ cita.paciente_nombre_completo }}</td>
+                <td>{{ cita.motivo_principal_cita }}</td>
+                
+                <td class="text-center">
+                  <span class="badge rounded-pill"
+                    [class.bg-primary]="cita.estado_cita === 'Agendada'"
+                    [class.bg-info]="cita.estado_cita === 'Confirmada'"
+                    [class.bg-success]="cita.estado_cita === 'Atendida'"
+                    [class.bg-warning]="cita.estado_cita === 'Pendiente' || cita.estado_cita === 'Reprogramada'"
+                    [class.bg-danger]="cita.estado_cita === 'Cancelada' || cita.estado_cita === 'No asistio'">
+                    {{ cita.estado_cita }}
+                  </span>
+                </td>
+
+                <!--td>{{ cita.dentistas_involucrados || 'Sin asignar' }}</td-->
+
+                <td class="text-center">
+                 @if (cita.estado_cita ==='Agendada') {
+                    <button class="btn btn-sm btn-success" (click)="abrirModalAtencion(cita)">
+                      Atender
+                    </button>
+                  }@else if(cita.estado_cita==='Atendida'){
+                    <button class="btn btn-sm btn-editar" (click)="abrirModalAtencion(cita)">
+                      Ver/Editar
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="alert alert-info mt-3" role="alert">
+        <i class="bi bi-info-circle"></i> No hay citas para la fecha y estado seleccionados.
+      </div>
+    }
+  </div>
+</div>
+
 <app-atencion-cita
   [citaSeleccionada]="citaParaAtender"
   (atencionGuardada)="recargarDatos()">
 </app-atencion-cita>
+
 
 <!-----------------------------------------------------------------------------------------------------------REPORTES-->
 <div class="row">
@@ -341,39 +396,4 @@ UPDATE Material SET stock = stock - 2 WHERE id_material = [ID_GUANTES];
 
 </div>
 
-<!--INSERCIONES Y EDICIONES-->
-<!--HISTORIAL CLINICO-
-div class="container">
-  
-  <div class="row mb-4">
-    <h3>Buscar Paciente</h3>
-    <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="d-flex gap-2">
-      <input formControlName="nombres" placeholder="Nombre" class="form-control">
-      <input formControlName="apellidoPat" placeholder="Apellido Pat" class="form-control">
-      <input formControlName="apellidoMat" placeholder="Apellido Mat" class="form-control">
-      <button type="submit" class="btn btn-primary">Buscar</button>
-    </form>
-  </div>
 
-  <div class="row mb-4" *ngIf="!pacienteSeleccionado">
-    <table class="table table-hover">
-      <thead>
-        <tr>
-          <th>Nombre Completo</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let p of pacientes">
-          <td>{{ p.paciente_nombre_completo }}</td>
-          <td>
-            <button class="btn btn-success btn-sm" (click)="seleccionarPaciente(p)">
-              Atender / Ver Historial
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-</div-->

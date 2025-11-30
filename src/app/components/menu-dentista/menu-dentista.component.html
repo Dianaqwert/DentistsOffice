@@ -1,7 +1,7 @@
 
 
 
-<!--GALERIA DE OPCIONES-->
+<!--GALERIA DE OPCIONES
 @if(!mostrarListaPacientes){
 
   <div class="divPrincipal">
@@ -37,7 +37,7 @@
           </div>
         </div>
 
-        <!-- Repite la misma estructura para cada "col" -->
+        Repite la misma estructura para cada "col" >
         <div class="col">
           <div class="card shadow-sm">
             <img src="citas.png" 
@@ -60,7 +60,7 @@
           </div>
         </div>
 
-        <!-- ... y así sucesivamente para las demás tarjetas -->
+       ... y así sucesivamente para las demás tarjetas >
         <div class="col">
           <div class="card shadow-sm">
             <img src="material.png" 
@@ -84,80 +84,32 @@
           </div>
         </div>
 
-        <!---->
-        <!--div class="col">
-          <div class="card shadow-sm">
-            <img src="historial.png" 
-            class="card-img-top bd-placeholder-img " 
-            alt="Pacientes" 
-            width="100%" 
-            height="225">
-            <div class="card-body">
-              <h2>Historial cliníco</h2>
-              <p class="card-text">
-                Dar de alta o baja a clientes , editar sus registros o tratamiento.
-              </p>
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Ver</button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Editar</button>
-                </div>
-                <small class="text-body-secondary">9 mins</small>
-              </div>
-            </div>
-          </div>
-        </div
-
-        
-        <div class="col">
-          <div class="card shadow-sm">
-            <img src="tratamitento.png" 
-            class="card-img-top bd-placeholder-img " 
-            alt="Pacientes" 
-            width="100%" 
-            height="225">
-            <div class="card-body">
-              <h2>Tratamiento</h2>
-              <p class="card-text">
-                Dar de alta o baja a clientes , editar sus registros o tratamiento.
-              </p>
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Ver</button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Editar</button>
-                </div>
-                <small class="text-body-secondary">9 mins</small>
-              </div>
-            </div>
-          </div>
-        </div>
-        -->
       
-
-        <!---->
-        <div class="col">
-          <div class="card shadow-sm">
-            <img src="adminPersonal.png" 
-            class="card-img-top bd-placeholder-img " 
-            alt="Pacientes" 
-            width="100%" 
-            height="225">
-            <div class="card-body">
-              <h2>Administración</h2>
-              <p class="card-text">
-                Dar de alta o baja a trabajadores y supervisión.
-              </p>
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Ver</button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary">Editar</button>
+ADMINISTRACION SOLO SI ES SUPER ADMI>
+        @if(esSuperAdmin){
+          <div class="col">
+            <div class="card shadow-sm">
+              <img src="adminPersonal.png" 
+              class="card-img-top bd-placeholder-img " 
+              alt="Pacientes" 
+              width="100%" 
+              height="225">
+              <div class="card-body">
+                <h2>Administración</h2>
+                <p class="card-text">
+                  Dar de alta o baja a trabajadores y supervisión.
+                </p>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cargarEmpleados()">Ver</button>
+                  </div>
+                  <small class="text-body-secondary">9 mins</small>
                 </div>
-                <small class="text-body-secondary">9 mins</small>
               </div>
             </div>
+            
           </div>
-          
-        </div>
+        }
       </div>
     </div>
   </div>
@@ -169,3 +121,64 @@
     (volverMenu)="volverAMenu()">
   </app-gestion-pacientes-dentista>
 }
+
+@else if(mostrarListaEmpleados){
+  <app-administracion-dentista
+    [empleados]="empleados"
+    (volver)="volverDeEmpleados()">
+  </app-administracion-dentista>
+}-->
+
+<nav class="navbar navbar-dark bg-primary sticky-top p-2 shadow">
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Clínica Dental</a>
+  
+  <div class="w-100 text-end text-white pe-3">
+    <span>Bienvenido, {{ usuario?.nombres }} </span>
+    <button class="btn btn-sm btn-outline-light ms-2" (click)="cerrarSesion()">Salir</button>
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+    
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse" style="min-height: 100vh;">
+      <div class="position-sticky pt-3">
+        <ul class="nav flex-column">
+          
+          <li class="nav-item">
+            <a class="nav-link" [routerLink]="['gestion-pacientes']" routerLinkActive="active" style="cursor: pointer;">
+              <i class="bi bi-people"></i> Gestión Pacientes
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="#" style="cursor: pointer;">
+              <i class="bi bi-calendar"></i> Agenda (Próximamente)
+            </a>
+          </li>
+
+          @if (esSuperAdmin) {
+            <li class="nav-item">
+              <a class="nav-link" [routerLink]="['administracion-empleados']" routerLinkActive="active" style="cursor: pointer;">
+                <i class="bi bi-person-badge"></i> Administración
+              </a>
+            </li>
+          }
+
+        </ul>
+      </div>
+    </nav>
+
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 pt-3">
+      
+      <router-outlet></router-outlet> 
+
+      @if (esPaginaPrincipal) {
+        <div class="text-center mt-5">
+          <img src="assets/diente_logo.png" alt="Logo" width="100" class="mb-3" style="opacity: 0.5;"> <h2>Panel de Control</h2>
+          <p class="lead">Selecciona una opción del menú lateral para comenzar.</p>
+        </div>
+      }
+    </main>
+  </div>
+</div>

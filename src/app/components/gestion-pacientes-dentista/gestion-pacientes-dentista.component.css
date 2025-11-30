@@ -90,3 +90,26 @@ button:hover{
 h2{
     font-weight:bold;
 }
+
+.btn-editar{
+    background-color: #95d3da;
+    color:#165856;
+
+}
+
+.txt-2{
+    font-size: 30px;
+    text-align: center;
+}
+
+.bg{
+    background-color: #76a6a5;
+}
+
+.claseBody{
+    padding: 10px;
+}
+
+.contendor{
+    margin: 20px;
+}

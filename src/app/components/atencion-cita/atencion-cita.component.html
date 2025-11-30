@@ -164,15 +164,37 @@
                             <div class="card-body p-2 position-relative">
                                 <button type="button" class="btn-close position-absolute top-0 end-0 m-1 small" (click)="eliminarDerivacion($index)"></button>
                                 <div class="row g-2">
-                                    <div class="col-6">
-                                        <input type="text" class="form-control form-control-sm" formControlName="nombreDentista" placeholder="Dr. Destino">
-                                    </div>
-                                    <div class="col-6">
-                                        <input type="text" class="form-control form-control-sm" formControlName="especialidadDentista" placeholder="Especialidad">
-                                    </div>
-                                    <div class="col-12">
-                                        <input type="text" class="form-control form-control-sm" formControlName="motivo" placeholder="Motivo">
-                                    </div>
+                                  <div class="col-6">
+                                      <input type="text" 
+                                            class="form-control form-control-sm" 
+                                            formControlName="nombreDentista" 
+                                            placeholder="Dr. Destino"
+                                            [class.is-invalid]="der.get('nombreDentista')?.invalid && der.get('nombreDentista')?.touched">
+                                      
+                                      @if (der.get('nombreDentista')?.hasError('pattern')) {
+                                          <div class="text-danger small" style="font-size: 0.75rem;">
+                                              No se permiten números.
+                                          </div>
+                                      }
+                                  </div>
+
+                                  <div class="col-6">
+                                      <input type="text" 
+                                            class="form-control form-control-sm" 
+                                            formControlName="especialidadDentista" 
+                                            placeholder="Especialidad"
+                                            [class.is-invalid]="der.get('especialidadDentista')?.invalid && der.get('especialidadDentista')?.touched">
+
+                                      @if (der.get('especialidadDentista')?.hasError('pattern')) {
+                                          <div class="text-danger small" style="font-size: 0.75rem;">
+                                              No se permiten números.
+                                          </div>
+                                      }
+                                  </div>
+
+                                  <div class="col-12">
+                                      <input type="text" class="form-control form-control-sm" formControlName="motivo" placeholder="Motivo">
+                                  </div>
                                 </div>
                             </div>
                         </div>

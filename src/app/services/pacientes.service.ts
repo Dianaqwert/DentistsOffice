@@ -61,5 +61,33 @@ export class PacientesService {
     return this.http.post(`${this.API_PACIENTES_URL}/atencion-cita`, datos);
   }
 
+  // Obtener solo citas pendientes/agendadas
+  getCitasAgendadas(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.API_PACIENTES_URL}/citas/agendadas`);
+  }
+
+  getCitasPorFecha(fecha: string, estado: string, idDentista?: number): Observable<any[]> {
+    let params = new HttpParams().set('fecha', fecha);
+    
+    if (estado && estado !== 'Todos') {
+      params = params.set('estado', estado);
+    }
+
+    // Si recibimos el ID del dentista, lo enviamos
+    if (idDentista) {
+      params = params.set('idDentista', idDentista.toString());
+    }
+
+    return this.http.get<any[]>(`${this.API_PACIENTES_URL}/citas/filtro`, { params });
+  }
+
+  // Obtener datos para editar una cita
+  getDetalleCita(idCita: number): Observable<any> {
+    return this.http.get<any>(`${this.API_PACIENTES_URL}/cita/${idCita}/detalles`);
+  }
+
+  getUltimoHistorial(idPaciente: number): Observable<any> {
+    return this.http.get<any>(`${this.API_PACIENTES_URL}/paciente/${idPaciente}/ultimo-historial`);
+  }
 
 }
